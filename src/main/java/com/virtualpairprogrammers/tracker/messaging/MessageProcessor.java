@@ -1,42 +1,43 @@
-package com.virtualpairprogrammers.tracker.domain;
+package com.virtualpairprogrammers.tracker.messaging;
 
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Map;
 
-public class VehicleBuilder {
-    private String name;
-    private BigDecimal lat;
-    private BigDecimal lng;
-    private Date timestamp;
-    private double speed; // Change type to double
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
+import org.springframework.stereotype.Component;
 
-    public VehicleBuilder withName(String name) {
-        this.name = name;
-        return this;
-    }
+import com.virtualpairprogrammers.tracker.data.Data;
+import com.virtualpairprogrammers.tracker.domain.VehicleBuilder;
+import com.virtualpairprogrammers.tracker.domain.VehiclePosition;
 
-    public VehicleBuilder withLat(BigDecimal lat) {
-        this.lat = lat;
-        return this;
-    }
+@Component
+public class MessageProcessor {
+	
+	@Autowired
+	private Data data;
+	
+	private DateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
-    public VehicleBuilder withLng(BigDecimal lng) {
-        this.lng = lng;
-        return this;
-    }
+	@JmsListener(destination="${fleetman.position.queue}")
+	public void processPositionMessageFromQueue(Map<String, String> incomingMessage ) throws ParseException 
+	{
+		String positionDatestamp = incomingMessage.get("time");
+		Date convertedDatestamp = format.parse(positionDatestamp);
+		
+		VehiclePosition newReport = new VehicleBuilder()
+				                          .withName(incomingMessage.get("vehicle"))
+				                          .withLat(new BigDecimal(incomingMessage.get("lat")))
+				                          .withLng(new BigDecimal(incomingMessage.get("long")))
+				                          .withTimestamp(convertedDatestamp)
+                                                          .withSpeed(new BigDecimal("63.5"))
+				                          .build();
+				                          
+		data.updatePosition(newReport);
+	}
 
-    public VehicleBuilder withTimestamp(Date timestamp) {
-        this.timestamp = timestamp;
-        return this;
-    }
-
-    // Change the parameter type to double
-    public VehicleBuilder withSpeed(double speed) {
-        this.speed = speed;
-        return this;
-    }
-
-    public VehiclePosition build() {
-        return new VehiclePosition(name, lat, lng, timestamp, speed);
-    }
 }
