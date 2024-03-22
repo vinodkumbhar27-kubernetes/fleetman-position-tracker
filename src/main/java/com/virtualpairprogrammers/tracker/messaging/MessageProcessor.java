@@ -12,6 +12,7 @@ import org.springframework.jms.annotation.JmsListener;
 import org.springframework.stereotype.Component;
 
 import com.virtualpairprogrammers.tracker.data.Data;
+import com.virtualpairprogrammers.tracker.domain.VehicleBuilder;
 import com.virtualpairprogrammers.tracker.domain.VehiclePosition;
 
 @Component
@@ -29,15 +30,16 @@ public class MessageProcessor {
         Date convertedDatestamp = format.parse(positionDatestamp);
         
         // Hardcoded speed value (e.g., 63.5 mph)
-        BigDecimal speed = new BigDecimal("63.5");
+        double speed = 63.5;
         
-        VehiclePosition newReport = new VehiclePosition(
-                incomingMessage.get("vehicle"),
-                new BigDecimal(incomingMessage.get("lat")),
-                new BigDecimal(incomingMessage.get("long")),
-                convertedDatestamp,
-                speed.doubleValue());
-                                      
+        VehiclePosition newReport = new VehicleBuilder()
+                                          .withName(incomingMessage.get("vehicle"))
+                                          .withLat(new BigDecimal(incomingMessage.get("lat")))
+                                          .withLng(new BigDecimal(incomingMessage.get("long")))
+                                          .withTimestamp(convertedDatestamp)
+                                          .withSpeed(speed)
+                                          .build();
+                                          
         data.updatePosition(newReport);
     }
 }
